@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERICA학술정보관 서가 안내</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url("https://cdn.tailwindcss.com/3.4.1");
+        @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+        * { font-family: 'Pretendard', sans-serif !important; }
+        body { background-color: #f1f5f9; margin: 0; }
+        .slide-in-bottom { animation: slideInBottom 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+        .fade-in-delay { animation: fadeIn 0.4s ease-in-out 0.3s both; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out both; }
+        .bounce-marker { animation: bounceMarker 1.5s infinite; }
+        .point-up { animation: pointUp 1.5s ease-in-out infinite; }
+        @keyframes slideInBottom { 0% { transform: translateY(30px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { 0% { opacity: 0; transform: translateY(5px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes bounceMarker { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @keyframes pointUp { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 아이콘 래퍼 스타일 보정 */
+        .lucide-wrapper svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        /**
+         * Lucide 아이콘 컴포넌트
+         */
+        const Icon = ({ name, size = 24, className = "", strokeWidth = 2 }) => {
+            const iconRef = useRef(null);
+
+            useEffect(() => {
+                if (window.lucide && iconRef.current) {
+                    iconRef.current.innerHTML = '';
+                    const iconNode = document.createElement('i');
+                    const lucideName = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+                    iconNode.setAttribute('data-lucide', lucideName);
+                    iconRef.current.appendChild(iconNode);
+                    
+                    window.lucide.createIcons({
+                        attrs: {
+                            'stroke-width': strokeWidth,
+                            'width': size,
+                            'height': size,
+                            'class': className
+                        },
+                        nameAttr: 'data-lucide'
+                    });
+                }
+            }, [name, size, className, strokeWidth]);
+
+            return (
+                <span 
+                    ref={iconRef} 
+                    className={`lucide-wrapper inline-flex items-center justify-center ${className}`}
+                    style={{ width: size, height: size }}
+                />
+            );
+        };
+
+        const ROOMS = {
+            room1: {
+                id: "room1", name: "동양서 자료실 1", floor: "3층", color: "#E91E8C",
+                sections: [
+                    { label: "000~099", min: 0, max: 99.999 },
+                    { label: "100~199", min: 100, max: 199.999 },
+                    { label: "200~299", min: 200, max: 299.999 },
+                    { label: "300~343", min: 300, max: 342.999 },
+                    { label: "343~399", min: 343, max: 399.999 },
+                    { label: "400~499", min: 400, max: 499.999 },
+                ]
+            },
+            room2: {
+                id: "room2", name: "동양서 자료실 2", floor: "3층", color: "#E91E8C",
+                sections: [
+                    { label: "500~574", min: 500, max: 573.999 },
+                    { label: "574~599", min: 574, max: 599.999 },
+                    { label: "600~658", min: 600, max: 657.999 },
+                    { label: "658~699", min: 658, max: 699.999 },
+                    { label: "700~799", min: 700, max: 799.999 },
+                ]
+            },
+            room3: {
+                id: "room3", name: "동양서 자료실 3", floor: "3층", color: "#E91E8C",
+                sections: [
+                    { label: "800~811.19", min: 800, max: 811.189 },
+                    { label: "811.19~811.86", min: 811.19, max: 811.859 },
+                    { label: "811.86~899", min: 811.86, max: 899.999 },
+                    { label: "900~960", min: 900, max: 960.999 },
+                ]
+            }
+        };
+
+        const parseCallNumber = (input) => {
+            if (!input.trim()) return { error: "청구기호를 입력해주세요." };
+            const match = input.match(/^(\d+(?:\.\d+)?)/);
+            if (!match) return { error: "청구기호 숫자 부분을 확인해주세요. (예: 371.3)" };
+            const num = parseFloat(match[1]);
+            for (const [key, room] of Object.entries(ROOMS)) {
+                for (const section of room.sections) {
+                    if (num >= section.min && num <= section.max) return { room, section };
+                }
+            }
+            if (num > 960 || num < 0) return { error: "서양서 자료실의 경우 대출/반납 데스크에 문의해주세요." };
+            return { error: "해당 구역을 찾을 수 없습니다." };
+        };
+
+        const ShelfCluster = ({ label, blocks, layout, arrow, isActive, className = "", positionClass = "absolute" }) => {
+            const isH = layout === "h"; 
+            const blockGroups = Array.isArray(blocks) ? blocks : [blocks];
+            
+            // "여기" 표기되지 않는 화살표는 무조건 파란색(text-blue-500/80)으로 강제 적용
+            const arrowColor = isActive ? 'text-[#E91E8C]' : 'text-blue-500/80';
+            const bgColor = isActive ? 'bg-pink-50 border-2 border-[#E91E8C] ring-4 ring-pink-200 z-30 scale-110 shadow-2xl' : 'bg-transparent z-10 opacity-90';
+
+            return (
+                <div className={`${positionClass} flex flex-col items-center justify-center p-1.5 rounded-xl transition-all duration-300 ${bgColor} ${className}`}>
+                    {label && (
+                        <div className="relative w-full h-4 mb-1.5 flex items-center justify-center z-20">
+                            <span className={`absolute text-[10px] font-black px-1.5 py-0.5 rounded-md whitespace-nowrap shadow-sm border ${isActive ? 'text-[#E91E8C] bg-white border-pink-300' : 'text-slate-600 bg-white/90 border-slate-300'}`}>
+                                {label}
+                            </span>
+                        </div>
+                    )}
+                    <div className={`flex relative ${isH ? 'flex-col' : 'flex-row'} gap-1.5`}>
+                        {blockGroups.map((count, gIndex) => (
+                            <React.Fragment key={gIndex}>
+                                {Array.from({length: count}).map((_, i) => (
+                                    <div key={`${gIndex}-${i}`} className={`bg-blue-50 border-[1.5px] border-blue-400 rounded-sm shadow-sm ${isH ? 'w-[50px] h-[18px]' : 'w-[18px] h-[50px]'}`} />
+                                ))}
+                                {gIndex < blockGroups.length - 1 && <div className={`${isH ? 'h-12' : 'w-12'} bg-transparent border-none`} />}
+                            </React.Fragment>
+                        ))}
+                        <div className={`absolute inset-0 flex items-center justify-center pointer-events-none ${arrowColor}`}>
+                            {arrow === 'right' && <Icon name="ArrowRight" size={isH ? 24 : 32} strokeWidth={4} className="drop-shadow-md" />}
+                            {arrow === 'left' && <Icon name="ArrowLeft" size={isH ? 24 : 32} strokeWidth={4} className="drop-shadow-md" />}
+                            {arrow === 'down' && <Icon name="ArrowDown" size={isH ? 32 : 24} strokeWidth={4} className="drop-shadow-md" />}
+                            {arrow === 'up' && <Icon name="ArrowUp" size={isH ? 32 : 24} strokeWidth={4} className="drop-shadow-md" />}
+                        </div>
+                    </div>
+                    {isActive && (
+                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex flex-col items-center bounce-marker">
+                            <div className="bg-[#E91E8C] text-white text-[11px] px-2 py-0.5 rounded-full font-bold whitespace-nowrap shadow-md mb-0.5">여기!</div>
+                            <Icon name="MapPin" size={26} className="text-[#E91E8C] fill-current drop-shadow-md" />
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const FloorRoomBlock = ({ name, range, active, className="" }) => (
+            <div className={`flex-1 rounded-xl border-2 flex flex-col items-center justify-center font-bold transition-all duration-300 ${active ? 'bg-[#E91E8C] text-white border-pink-600 shadow-[0_0_15px_rgba(233,30,140,0.5)] scale-[1.03] z-20' : 'bg-[#f8fafc] text-slate-500 border-slate-300 opacity-80'} ${className}`}>
+                <span className="text-[14px] leading-tight mb-0.5">{name}</span>
+                <span className={`text-[10px] ${active ? 'text-pink-200' : 'text-slate-400'}`}>{range}</span>
+                {active && (
+                    <div className="mt-1.5 bg-white text-[#E91E8C] text-[10px] px-2 py-0.5 rounded-full animate-pulse flex items-center gap-1 shadow-sm">
+                        <Icon name="MapPin" size={10} className="fill-current" /> 바로 이 곳!
+                    </div>
+                )}
+            </div>
+        );
+
+        const FloorMap = ({ activeRoom }) => (
+            <div className="bg-[#e2e8f0] border-[3px] border-slate-300 rounded-3xl p-3 pb-4 relative w-full aspect-[4/3] flex flex-col gap-2 shadow-inner fade-in">
+                <div className="absolute inset-0 rounded-[20px] overflow-hidden pointer-events-none">
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px)', backgroundSize: '15px 15px' }}></div>
+                </div>
+                <div className="flex-[1.2] flex gap-2 relative z-10">
+                    <FloorRoomBlock id="room1" name="동양서 1" range="(000~400)" active={activeRoom.id === 'room1'} className="flex-[3]" />
+                    <div className="flex-[1.5] flex flex-col items-center justify-start relative">
+                        <div className="w-full bg-slate-500 rounded-lg flex items-center justify-center text-[10px] tracking-tighter font-bold text-white shadow-sm py-1.5 border border-slate-600 z-10 whitespace-nowrap">🛗 엘리베이터</div>
+                        <div className="flex-1 w-full border-r-[3px] border-dashed border-slate-400/60 mr-1 mt-1"></div>
+                        <div className="absolute top-[45%] left-[45%] -translate-x-1/2 text-[10px] text-slate-500 font-bold bg-[#e2e8f0] px-1">통로</div>
+                    </div>
+                    <FloorRoomBlock id="room3" name="동양서 3" range="(800~900)" active={activeRoom.id === 'room3'} className="flex-[3.5]" />
+                </div>
+                <div className="flex justify-center w-full px-8 z-20 -mt-1">
+                    <div className="w-[80%] bg-white rounded-lg border-[2px] border-slate-300 flex flex-col items-center justify-center text-[11px] font-bold text-slate-700 shadow-md py-1.5 relative overflow-hidden">
+                        <div className="absolute left-0 top-0 bottom-0 w-2 bg-slate-500"></div>🖥️ 대출/반납 데스크
+                    </div>
+                </div>
+                <div className="flex-[1] flex gap-2 relative z-10 mt-1">
+                    <FloorRoomBlock id="room2" name="동양서 2" range="(500~700)" active={activeRoom.id === 'room2'} className="flex-[5.5]" />
+                    <div className="flex-[1.5] bg-slate-200/60 border-2 border-slate-300 border-dashed rounded-xl flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm">사무실</div>
+                </div>
+            </div>
+        );
+
+        const RoomMap = ({ room, activeSection }) => (
+            <div className="bg-[#F8FAFC] border-[3px] border-slate-300 rounded-3xl w-full aspect-square relative shadow-inner fade-in">
+                <div className="absolute inset-0 rounded-[20px] overflow-hidden pointer-events-none">
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(#cbd5e1 1px, transparent 1px), linear-gradient(90deg, #cbd5e1 1px, transparent 1px)', backgroundSize: '15px 15px' }}></div>
+                </div>
+                {room.id === 'room1' && (
+                    <div className="w-full h-full relative z-10 flex items-center justify-center">
+                        <div className="absolute bottom-[10%] right-[-3px] w-6 py-4 bg-[#F8FAFC] border-y-[3px] border-l-[3px] border-slate-300 rounded-l-xl z-0 flex items-center justify-center shadow-inner">
+                            <span className="text-[10px] font-black text-slate-500" style={{ writingMode: 'vertical-rl', textOrientation: 'upright' }}>입구</span>
+                        </div>
+                        <div className="absolute bottom-[12%] right-8 bg-pink-100 border-2 border-pink-400 text-[#E91E8C] px-3 py-1.5 rounded-full text-[11px] font-black shadow-md z-20 flex flex-col items-center point-up"><span>📍 현위치</span></div>
+                        <div className="flex flex-col justify-between w-[88%] h-[78%] mt-2 ml-4">
+                            <div className="flex gap-4 items-center justify-start w-full">
+                                <ShelfCluster positionClass="relative" label="200~299" blocks={1} layout="v" arrow="down" isActive={activeSection?.label === "200~299"} />
+                                <ShelfCluster positionClass="relative" label="100~199" blocks={2} layout="v" arrow="left" isActive={activeSection?.label === "100~199"} />
+                                <ShelfCluster positionClass="relative" label="000~099" blocks={5} layout="v" arrow="left" isActive={activeSection?.label === "000~099"} />
+                            </div>
+                            <div className="flex gap-4 items-center justify-start w-full">
+                                <ShelfCluster positionClass="relative" label="200~299" blocks={1} layout="v" arrow="down" isActive={activeSection?.label === "200~299"} />
+                                <ShelfCluster positionClass="relative" label="300~343" blocks={4} layout="v" arrow="right" isActive={activeSection?.label === "300~343"} />
+                            </div>
+                            <div className="flex gap-4 items-center justify-start w-full">
+                                <ShelfCluster positionClass="relative" label="400~499" blocks={2} layout="v" arrow="left" isActive={activeSection?.label === "400~499"} />
+                                <ShelfCluster positionClass="relative" label="343~399" blocks={3} layout="v" arrow="left" isActive={activeSection?.label === "343~399"} />
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {room.id === 'room2' && (
+                    <div className="w-full h-full relative z-10">
+                        <div className="absolute bottom-3 left-3 w-[40%] h-9 bg-slate-50 border-2 border-slate-200 rounded-lg flex items-center justify-center text-slate-600 shadow-sm z-0"><span className="text-[10px] font-black text-center leading-tight">대출/반납 데스크</span></div>
+                        <div className="absolute top-[65%] left-[-3px] w-6 py-4 bg-[#F8FAFC] border-y-[3px] border-r-[3px] border-slate-300 rounded-r-xl z-0 flex items-center justify-center shadow-inner"><span className="text-[10px] font-black text-slate-500" style={{ writingMode: 'vertical-rl', textOrientation: 'upright' }}>계단</span></div>
+                        <div className="absolute bottom-[-3px] left-[65%] -translate-x-1/2 h-6 px-4 bg-[#F8FAFC] border-x-[3px] border-t-[3px] border-slate-300 rounded-t-xl z-0 flex items-center justify-center shadow-inner"><span className="text-[10px] font-black text-slate-500">엘리베이터 방향</span></div>
+                        <div className="absolute bottom-8 left-[65%] -translate-x-1/2 bg-pink-100 border-2 border-pink-400 text-[#E91E8C] px-3 py-1.5 rounded-full text-[11px] font-black shadow-md z-20 flex flex-col items-center point-up"><span>📍 현위치</span></div>
+                        <div className="absolute top-[12%] right-[5%] w-[90%] h-[60%] flex flex-col justify-between items-end z-10">
+                            <div className="flex gap-8 items-center justify-end w-full">
+                                <ShelfCluster positionClass="relative" label="658~699" blocks={2} layout="v" arrow="right" isActive={activeSection?.label === "658~699"} />
+                                <ShelfCluster positionClass="relative" label="700~799" blocks={8} layout="v" arrow="right" isActive={activeSection?.label === "700~799"} />
+                            </div>
+                            <div className="flex gap-8 items-center justify-end w-full">
+                                <ShelfCluster positionClass="relative" label="600~658" blocks={8} layout="v" arrow="left" isActive={activeSection?.label === "600~658"} />
+                                <ShelfCluster positionClass="relative" label="574~599" blocks={2} layout="v" arrow="left" isActive={activeSection?.label === "574~599"} />
+                            </div>
+                            <div className="flex gap-8 items-center justify-end w-full"><ShelfCluster positionClass="relative" label="500~574" blocks={4} layout="v" arrow="right" isActive={activeSection?.label === "500~574"} /></div>
+                        </div>
+                    </div>
+                )}
+                {room.id === 'room3' && (
+                    <div className="w-full h-full relative z-10">
+                        <div className="absolute left-[-3px] top-[46%] -translate-y-1/2 w-6 py-4 bg-[#F8FAFC] border-y-[3px] border-r-[3px] border-slate-300 rounded-r-xl z-0 flex items-center justify-center shadow-inner">
+                            <span className="text-[9px] font-black text-slate-500" style={{ writingMode: 'vertical-rl', textOrientation: 'upright' }}>엘리베이터</span>
+                        </div>
+                        <div className="absolute bottom-4 left-[26%] -translate-x-1/2 w-[22%] bg-slate-50 border-2 border-slate-200 rounded-lg p-1.5 flex flex-col items-center justify-center text-slate-600 shadow-sm z-0 h-10"><span className="text-[10px] font-black text-center leading-tight">대출/반납<br/>데스크</span></div>
+                        
+                        {/* 동양서 3 계단 수정: 다른 자료실과 동일하게 벽면 박스 디자인 적용 */}
+                        <div className="absolute right-[-3px] bottom-10 w-6 py-4 bg-[#F8FAFC] border-y-[3px] border-l-[3px] border-slate-300 rounded-l-xl z-0 flex items-center justify-center shadow-inner">
+                            <span className="text-[10px] font-black text-slate-500" style={{ writingMode: 'vertical-rl', textOrientation: 'upright' }}>계단</span>
+                        </div>
+                        
+                        <div className="absolute bottom-6 left-[48%] -translate-x-1/2 bg-pink-100 border-2 border-pink-400 text-[#E91E8C] px-3 py-1.5 rounded-full text-[10px] font-black shadow-md z-20 flex flex-col items-center point-up"><span>📍 현위치</span></div>
+                        
+                        {/* 모든 ShelfCluster의 화살표 색상이 isActive가 아닐 때 text-blue-500/80가 되도록 ShelfCluster 내부 로직에서 강제 적용됨 */}
+                        <ShelfCluster label="900~960" blocks={[3, 4]} layout="h" arrow="down" isActive={activeSection?.label === "900~960"} className="top-[16%] left-[26%] -translate-x-1/2" />
+                        <ShelfCluster label="811.86~899" blocks={[3, 4]} layout="h" arrow="up" isActive={activeSection?.label === "811.86~899"} className="top-[16%] left-[48%] -translate-x-1/2" />
+                        <ShelfCluster label="811.19~811.86" blocks={5} layout="h" arrow="down" isActive={activeSection?.label === "811.19~811.86"} className="top-[16%] left-[70%] -translate-x-1/2" />
+                        <ShelfCluster label="800~811.19" blocks={5} layout="h" arrow="up" isActive={activeSection?.label === "800~811.19"} className="top-[16%] left-[90%] -translate-x-1/2" />
+                    </div>
+                )}
+            </div>
+        );
+
+        function App() {
+            const [step, setStep] = useState(1);
+            const [mapView, setMapView] = useState('floor'); 
+            const [callNum, setCallNum] = useState("");
+            const [errorMsg, setErrorMsg] = useState("");
+            const [result, setResult] = useState(null);
+
+            const handleSearch = () => {
+                const parsed = parseCallNumber(callNum);
+                if (parsed.error) setErrorMsg(parsed.error);
+                else { setResult(parsed); setMapView('floor'); setStep(2); }
+            };
+
+            const resetSearch = () => { setCallNum(""); setErrorMsg(""); setResult(null); setMapView('floor'); setStep(1); };
+
+            return (
+                <div className="max-w-[430px] mx-auto min-h-screen bg-slate-50 shadow-2xl relative overflow-x-hidden flex flex-col border-x border-slate-200">
+                    {/* 뒤로가기 버튼 수정: 꺾쇠 모양 < (ChevronLeft) 아이콘 적용 */}
+                    <header className="bg-white px-5 py-4 flex items-center justify-center relative border-b border-slate-200 shrink-0 z-20 shadow-sm">
+                        {step > 1 && (
+                            <button onClick={() => step === 2 ? resetSearch() : setStep(2)} className="absolute left-4 p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-all active:scale-90">
+                                <Icon name="ChevronLeft" size={26} strokeWidth={2.5} />
+                            </button>
+                        )}
+                        <h1 className="text-lg font-black tracking-tight text-[#E91E8C]">ERICA학술정보관 서가 안내</h1>
+                    </header>
+
+                    <main className="flex-1 flex flex-col relative overflow-y-auto hide-scrollbar">
+                        {step === 1 && (
+                            <div className="flex-1 flex flex-col px-6 py-8 slide-in-bottom">
+                                <div className="text-center mb-8 mt-2">
+                                    <div className="w-16 h-16 bg-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#E91E8C] shadow-sm"><Icon name="BookOpen" size={32} /></div>
+                                    <h2 className="text-2xl font-bold text-slate-800 mb-2">어떤 책을 찾으시나요?</h2>
+                                    <p className="text-[15px] text-slate-500 font-medium">청구기호를 입력하면<br/>정확한 서가 구역을 알려드려요.</p>
+                                </div>
+                                <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                                    <label className="block text-[13px] font-bold text-slate-500 mb-2 ml-1">청구기호 입력</label>
+                                    <div className="relative">
+                                        <input type="text" value={callNum} onChange={(e) => setCallNum(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} placeholder="예) 371.30281 권9321ㄱ" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-4 text-lg font-bold text-slate-800 outline-none focus:border-[#E91E8C] focus:bg-white transition-all placeholder:font-normal placeholder:text-slate-400" />
+                                        {callNum && <button onClick={() => setCallNum('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-200 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">X</button>}
+                                    </div>
+                                    {errorMsg && <p className="text-red-500 text-[13px] mt-3 flex items-center gap-1 font-bold bg-red-50 p-3 rounded-lg border border-red-100"><Icon name="Info" size={16} /> {errorMsg}</p>}
+                                    <button onClick={handleSearch} className="w-full mt-6 bg-[#E91E8C] text-white rounded-xl py-4 font-bold text-[17px] shadow-md hover:bg-pink-600 active:scale-[0.98] transition-all flex items-center justify-center gap-2"><Icon name="Search" size={20} /> 위치 찾아보기</button>
+                                </div>
+                                <div className="mt-6 bg-slate-100 rounded-xl p-4 text-center border border-slate-200 shadow-sm"><p className="text-[14px] text-slate-700 font-bold flex flex-col gap-1 items-center"><span className="text-lg">⚠️</span><span>서양서 자료실의 경우<br/><span className="text-slate-500">대출/반납 데스크</span>에 문의해주세요.</span></p></div>
+                            </div>
+                        )}
+                        {step === 2 && result && (
+                            <div className="flex flex-col px-5 py-6 h-full pb-24 slide-in-bottom">
+                                <div className="flex items-end gap-3 mb-5">
+                                    <div className="bg-white rounded-2xl p-4 shadow-md border border-slate-200 relative flex-1 fade-in">
+                                        <p className="text-[12px] text-slate-500 font-bold mb-1">안내</p>
+                                        <p className="text-[14px] text-slate-800 font-medium leading-snug">
+                                            {mapView === 'floor' ? <span>핑크색으로 표시된 <br/><strong className="text-[#E91E8C] font-black text-[15px]">{result.room.name}</strong>으로 이동해주세요.</span> : <span>서가 방향에 맞춰 <br/><strong className="text-[#E91E8C] bg-pink-50 px-1 rounded font-black text-[15px]">{result.section.label}</strong> 구역을 찾아보세요!</span>}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex bg-slate-200/70 p-1.5 rounded-xl mb-4 fade-in-delay">
+                                    <button onClick={() => setMapView('floor')} className={`flex-1 py-2.5 text-[14px] flex items-center justify-center gap-1.5 font-bold rounded-lg transition-all ${mapView === 'floor' ? 'bg-white shadow-sm text-[#E91E8C]' : 'text-slate-500'}`}><Icon name="Building" size={18} className={mapView === 'floor' ? 'text-[#E91E8C]' : 'text-slate-500'} /> 1. 전체 도면 보기</button>
+                                    <button onClick={() => setMapView('room')} className={`flex-1 py-2.5 text-[14px] flex items-center justify-center gap-1.5 font-bold rounded-lg transition-all ${mapView === 'room' ? 'bg-white shadow-sm text-[#E91E8C]' : 'text-slate-500'}`}><Icon name="Search" size={18} className={mapView === 'room' ? 'text-[#E91E8C]' : 'text-slate-500'} /> 2. 자료실 내부</button>
+                                </div>
+                                <div className="flex-1 mb-2">{mapView === 'floor' ? <FloorMap activeRoom={result.room} /> : <RoomMap room={result.room} activeSection={result.section} />}</div>
+                                <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-slate-50 via-slate-50 to-transparent pt-10 z-20">
+                                    {mapView === 'floor' ? 
+                                        <button onClick={() => setMapView('room')} className="w-full bg-[#E91E8C] text-white rounded-xl py-4 font-bold text-[16px] shadow-lg hover:bg-pink-600 transition-all flex items-center justify-between px-6 fade-in">다음: 자료실 내부 서가 위치 보기 <Icon name="ArrowRight" size={20} /></button> : 
+                                        <button onClick={() => setStep(3)} className="w-full bg-slate-800 text-white rounded-xl py-4 font-bold text-[16px] shadow-lg hover:bg-slate-700 transition-all flex items-center justify-between px-6 fade-in">도착했어요! 서가에서 책 찾는 법 <Icon name="ChevronRight" size={20} /></button>
+                                    }
+                                </div>
+                            </div>
+                        )}
+                        {step === 3 && (
+                            <div className="flex flex-col px-6 py-6 pb-24 slide-in-bottom space-y-8">
+                                <section>
+                                    <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><span className="bg-[#E91E8C] text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span>청구기호 이해하기</h2>
+                                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="flex w-full overflow-hidden rounded-xl border border-slate-200 text-center font-black text-lg">
+                                                <div className="flex-1 bg-yellow-100 text-yellow-800 py-3 border-r border-slate-200">371.30281</div>
+                                                <div className="flex-1 bg-green-100 text-green-800 py-3">권9321ㄱ</div>
+                                            </div>
+                                            <div className="flex w-full justify-between px-4 text-[11px] font-bold mt-1">
+                                                <div className="text-center text-yellow-700 flex flex-col items-center"><Icon name="ArrowUp" size={12} strokeWidth={3} className="mb-1" />분류기호 (주제)</div>
+                                                <div className="text-center text-green-700 flex flex-col items-center"><Icon name="ArrowUp" size={12} strokeWidth={3} className="mb-1" />도서기호 (저자,책)</div>
+                                            </div>
+                                        </div>
+                                        <p className="text-[14px] text-slate-600 mt-5 leading-relaxed bg-slate-50 p-3 rounded-lg">서가에서는 <strong>분류기호(숫자)</strong>를 먼저 찾은 후, 그 안에서 <strong>도서기호(문자+숫자)</strong>를 확인하여 책을 찾습니다.</p>
+                                    </div>
+                                </section>
+                                <section>
+                                    <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><span className="bg-[#E91E8C] text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span>서가 배열 순서</h2>
+                                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+                                        <div className="bg-[#FDF2F8] rounded-xl p-6 mb-6 flex justify-center relative border border-pink-100">
+                                            <div className="flex flex-col gap-2 relative w-48">
+                                                <div className="flex gap-1 items-end border-b-4 border-slate-700 pb-1 w-full relative z-0">
+                                                    <div className="w-6 h-16 bg-blue-400 rounded-t-sm"></div><div className="w-5 h-14 bg-red-400 rounded-t-sm"></div><div className="w-8 h-18 bg-yellow-400 rounded-t-sm"></div><div className="w-6 h-15 bg-green-400 rounded-t-sm"></div><div className="w-4 h-16 bg-purple-400 rounded-t-sm"></div>
+                                                </div>
+                                                <div className="flex gap-1 items-end border-b-4 border-slate-700 pb-1 w-full relative opacity-50 z-0">
+                                                    <div className="w-7 h-15 bg-slate-400 rounded-t-sm"></div><div className="w-5 h-16 bg-slate-400 rounded-t-sm"></div><div className="w-6 h-14 bg-slate-400 rounded-t-sm"></div>
+                                                </div>
+                                                <svg className="absolute top-0 left-0 w-full h-full z-10 pointer-events-none overflow-visible">
+                                                    <defs><marker id="pink-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 1 L 10 5 L 0 9 z" fill="#ec4899" /></marker></defs>
+                                                    <line x1="0" y1="30%" x2="100%" y2="30%" stroke="#ec4899" strokeWidth="3.5" markerEnd="url(#pink-arrow)" strokeLinecap="round" />
+                                                    <line x1="100%" y1="30%" x2="0" y2="82%" stroke="#ec4899" strokeWidth="3.5" markerEnd="url(#pink-arrow)" strokeLinecap="round" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col items-center text-center gap-2"><div className="flex w-full justify-between items-start"><span className="text-[11px] font-black text-slate-400 leading-none">01</span><Icon name="ArrowRight" className="text-[#E91E8C]" size={20}/></div><span className="text-[13px] font-bold text-slate-700 mt-1 break-keep">왼쪽에서 오른쪽으로</span></div>
+                                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col items-center text-center gap-2"><div className="flex w-full justify-between items-start"><span className="text-[11px] font-black text-slate-400 leading-none">02</span><Icon name="ArrowDown" className="text-[#E91E8C]" size={20}/></div><span className="text-[13px] font-bold text-slate-700 mt-1 break-keep">위에서 아래로</span></div>
+                                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col items-center text-center gap-2"><div className="flex w-full justify-between items-start"><span className="text-[11px] font-black text-slate-400 leading-none">03</span><span className="font-black text-[#E91E8C] text-lg">가</span></div><span className="text-[13px] font-bold text-slate-700 mt-1 break-keep">가나다 순</span></div>
+                                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-col items-center text-center gap-2"><div className="flex w-full justify-between items-start"><span className="text-[11px] font-black text-slate-400 leading-none">04</span><span className="font-black text-[#E91E8C] text-lg">A</span></div><span className="text-[13px] font-bold text-slate-700 mt-1 break-keep">ABC 순</span></div>
+                                        </div>
+                                    </div>
+                                </section>
+                                <button onClick={resetSearch} className="w-full bg-slate-800 text-white rounded-xl py-4 font-bold text-[16px] shadow-lg hover:bg-slate-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2">처음으로 돌아가기</button>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
