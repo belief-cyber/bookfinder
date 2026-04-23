@@ -103,7 +103,7 @@
                     { label: "800~811.19", min: 800, max: 811.189 },
                     { label: "811.19~811.86", min: 811.19, max: 811.859 },
                     { label: "811.86~899", min: 811.86, max: 899.999 },
-                    { label: "900~960", min: 900, max: 960.999 },
+                    { label: "900~999", min: 900, max: 999.999 },
                 ]
             }
         };
@@ -260,7 +260,7 @@
                             <span className="text-[10px] font-black text-slate-500" style={{ writingMode: 'vertical-rl', textOrientation: 'upright' }}>계단</span>
                         </div>
                         <div className="absolute bottom-6 left-[48%] -translate-x-1/2 bg-pink-100 border-2 border-pink-400 text-[#E91E8C] px-3 py-1.5 rounded-full text-[10px] font-black shadow-md z-20 flex flex-col items-center point-up"><span>📍 현위치</span></div>
-                        <ShelfCluster label="900~960" blocks={[3, 4]} layout="h" arrow="down" isActive={activeSection?.label === "900~960"} className="top-[16%] left-[26%] -translate-x-1/2" />
+                        <ShelfCluster label="900~999" blocks={[3, 4]} layout="h" arrow="down" isActive={activeSection?.label === "900~999"} className="top-[16%] left-[26%] -translate-x-1/2" />
                         <ShelfCluster label="811.86~899" blocks={[3, 4]} layout="h" arrow="up" isActive={activeSection?.label === "811.86~899"} className="top-[16%] left-[48%] -translate-x-1/2" />
                         <ShelfCluster label="811.19~811.86" blocks={5} layout="h" arrow="down" isActive={activeSection?.label === "811.19~811.86"} className="top-[16%] left-[70%] -translate-x-1/2" />
                         <ShelfCluster label="800~811.19" blocks={5} layout="h" arrow="up" isActive={activeSection?.label === "800~811.19"} className="top-[16%] left-[90%] -translate-x-1/2" />
