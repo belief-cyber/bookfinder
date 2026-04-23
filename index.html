@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ERICA학술정보관 서가 안내</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url("https://cdn.tailwindcss.com/3.4.1");
@@ -114,15 +118,16 @@
                     if (num >= section.min && num <= section.max) return { room, section };
                 }
             }
-            if (num > 960 || num < 0) return { error: "서양서 자료실의 경우 대출/반납 데스크에 문의해주세요." };
-            return { error: "해당 구역을 찾을 수 없습니다." };
+            // 검색 실패 시 요청하신 문구로 변경
+            return { error: "입력한 청구기호를 다시 확인해주세요." };
         };
 
         const ShelfCluster = ({ label, blocks, layout, arrow, isActive, className = "", positionClass = "absolute" }) => {
             const isH = layout === "h"; 
             const blockGroups = Array.isArray(blocks) ? blocks : [blocks];
             
-            const arrowColor = 'text-blue-500';
+            // 기존 원본 로직으로 복구: 활성화(핑크), 비활성화(파란색)
+            const arrowColor = isActive ? 'text-[#E91E8C]' : 'text-blue-500/80';
             const bgColor = isActive ? 'bg-pink-50 border-2 border-[#E91E8C] ring-4 ring-pink-200 z-30 scale-110 shadow-2xl' : 'bg-transparent z-10 opacity-90';
 
             return (
@@ -315,7 +320,14 @@
                         {step === 2 && result && (
                             <div className="flex flex-col px-5 py-6 h-full pb-24 slide-in-bottom">
                                 <div className="flex items-end gap-3 mb-5">
+                                    <div className="shrink-0 z-10 -ml-1">
+                                        <div className="w-24 h-24 relative">
+                                            <div className="absolute inset-0 bg-pink-100 rounded-full scale-90 -z-10 shadow-inner"></div>
+                                            <img src="character.png" alt="캐릭터" className="w-full h-full object-contain drop-shadow-md" />
+                                        </div>
+                                    </div>
                                     <div className="bg-white rounded-2xl p-4 shadow-md border border-slate-200 relative flex-1 fade-in">
+                                        <div className="absolute bottom-6 -left-2 w-4 h-4 bg-white rotate-45 border-b border-l border-slate-100"></div>
                                         <p className="text-[12px] text-slate-500 font-bold mb-1">안내</p>
                                         <p className="text-[14px] text-slate-800 font-medium leading-snug">
                                             {mapView === 'floor' ? <span>핑크색으로 표시된 <br/><strong className="text-[#E91E8C] font-black text-[15px]">{result.room.name}</strong>으로 이동해주세요.</span> : <span>서가 방향에 맞춰 <br/><strong className="text-[#E91E8C] bg-pink-50 px-1 rounded font-black text-[15px]">{result.section.label}</strong> 구역을 찾아보세요!</span>}
@@ -330,7 +342,6 @@
                                 <div className="flex-1 flex flex-col">
                                     {mapView === 'floor' ? <FloorMap activeRoom={result.room} /> : <RoomMap room={result.room} activeSection={result.section} />}
                                     
-                                    {/* 2. 자료실 내부(mapView === 'room')일 때 하단 안내 문구 추가 */}
                                     {mapView === 'room' && (
                                         <div className="flex flex-col gap-1 mt-3 px-1 fade-in-delay">
                                             <p className="text-[11px] text-slate-500 font-bold tracking-tight">*서가 구역의 화살표 방향대로 책을 찾아보세요.</p>
